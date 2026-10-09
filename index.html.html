@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inventory Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef2f6;
+    --surface: #ffffff;
+    --ink: #14213d;
+    --muted: #5b6b82;
+    --line: #d9e1ea;
+    --accent: #1b4965;
+    --ok-bg: #dff3e7;
+    --ok-ink: #17623a;
+    --warn-bg: #fde7c8;
+    --warn-ink: #8a4b00;
+    --alert-bg: #fff4e0;
+    --alert-line: #f0b44c;
+    --out-bg: #fbdada;
+    --out-line: #d64545;
+    --out-tint: #fff5f5;
+    --out-ink: #9b1c1c;
+    --btn: #eaf0f6;
+    --btn-hover: #d9e4ee;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1520; --surface: #172131; --ink: #e8eef6; --muted: #93a3b8;
+      --line: #263449; --accent: #7fb7d9; --ok-bg: #173a29; --ok-ink: #7fdba5;
+      --warn-bg: #4a3513; --warn-ink: #ffcb7a; --alert-bg: #2b2212; --alert-line: #a8741f;
+      --out-line: #c75a5a; --out-tint: #261617; --out-bg: #4a1d1d; --out-ink: #ff9d9d; --btn: #223149; --btn-hover: #2c3f5c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1520; --surface: #172131; --ink: #e8eef6; --muted: #93a3b8;
+    --line: #263449; --accent: #7fb7d9; --ok-bg: #173a29; --ok-ink: #7fdba5;
+    --warn-bg: #4a3513; --warn-ink: #ffcb7a; --alert-bg: #2b2212; --alert-line: #a8741f;
+    --out-line: #c75a5a; --out-tint: #261617; --out-bg: #4a1d1d; --out-ink: #ff9d9d; --btn: #223149; --btn-hover: #2c3f5c;
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Manrope", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 48px; }
+  header h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 800; letter-spacing: -0.02em; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .alert {
+    margin: 22px 0 6px; padding: 14px 18px; border-radius: 12px;
+    background: var(--alert-bg); border: 1px solid var(--alert-line);
+  }
+  .alert strong { display: block; margin-bottom: 2px; font-size: 15px; }
+  .alert span { color: var(--muted); font-size: 14px; }
+  .alert.hidden { display: none; }
+
+  h2 { font-size: 17px; font-weight: 700; margin: 30px 0 12px; }
+  h2 small { font-weight: 500; color: var(--muted); font-size: 13px; margin-left: 8px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 18px;
+  }
+  .card.alerting { border-color: var(--alert-line); border-width: 2px; padding: 17px; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .name { font-weight: 700; font-size: 16px; }
+  .rule { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .pill { font-size: 12.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+  .pill.ok { background: var(--ok-bg); color: var(--ok-ink); }
+  .pill.out { background: var(--out-bg); color: var(--out-ink); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn-ink); }
+
+  .count { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 14px; }
+  .count b { font-size: 46px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+  .count span { color: var(--muted); font-size: 14px; }
+
+  .bar { height: 6px; border-radius: 6px; background: var(--line); overflow: hidden; margin-bottom: 16px; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 6px; transition: width .25s; }
+  .card.alerting .bar i { background: var(--alert-line); }
+
+  .controls { display: flex; gap: 8px; align-items: center; }
+  .controls input {
+    flex: 1; min-width: 0; text-align: center; font: inherit; font-weight: 700; font-size: 16px;
+    padding: 9px 6px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink);
+  }
+  button {
+    font: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
+    padding: 9px 14px; border-radius: 10px; border: 0;
+    background: var(--btn); color: var(--ink); min-width: 52px;
+  }
+  button:hover { background: var(--btn-hover); }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .card.faulty { border-color: var(--out-line); background: var(--out-tint); }
+  .card.faulty.alerting { border-color: var(--out-line); }
+  .card.faulty .count b { color: var(--out-ink); }
+  .card.faulty .bar i, .card.faulty.alerting .bar i { background: var(--out-line); }
+  h2.faulty-title { color: var(--out-ink); }
+  h2.faulty-title small { color: var(--muted); }
+
+
+  /* Desktop dashboard layout */
+  .wrap { max-width: 1520px; padding: 32px 40px 56px; }
+  .board { display: grid; grid-template-columns: 1fr; gap: 28px 26px; align-items: start; }
+  @media (min-width: 760px)  { .board { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 1150px) { .board { grid-template-columns: repeat(3, 1fr); } }
+  .panel { min-width: 0; }
+  .panel h2 { margin-top: 0; padding-bottom: 10px; border-bottom: 2px solid var(--line); }
+  .panel h2.faulty-title { border-bottom-color: var(--out-line); }
+  .panel h2 small { display: block; margin: 2px 0 0; }
+  .panel .grid { grid-template-columns: 1fr; }
+  @media (max-width: 600px) { .wrap { padding: 22px 16px 40px; } }
+
+  footer { margin-top: 34px; color: var(--muted); font-size: 13px; }
+  footer button { font-size: 13px; padding: 7px 12px; margin-left: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Inventory Management</h1>
+    <p>Current stock of devices, accessories and rolls.</p>
+  </header>
+
+  <div id="alert" class="alert hidden" role="status"></div>
+
+  <div class="board">
+  <section class="panel">
+  <h2>Devices</h2>
+  <div class="grid" id="devices"></div>
+  </section>
+
+  <section class="panel">
+  <h2>Pouches</h2>
+  <div class="grid" id="pouches"></div>
+  </section>
+
+  <section class="panel">
+  <h2>Chargers</h2>
+  <div class="grid" id="chargers"></div>
+  </section>
+
+  <section class="panel">
+  <h2>Rolls</h2>
+  <div class="grid" id="rolls"></div>
+  </section>
+
+  <section class="panel">
+  <h2>Transit Cards</h2>
+  <div class="grid" id="cards"></div>
+  </section>
+
+  <section class="panel">
+  <h2 class="faulty-title">Devices for replacement <small>Faulty devices waiting for the vendor to approve and send a new one</small></h2>
+  <div class="grid" id="replacement"></div>
+  </section>
+
+  </div>
+
+  <footer>
+    Changes save in this browser.
+    <button id="reset" type="button">Reset to sample stock</button>
+  </footer>
+</div>
+
+<script>
+  // type "count": Out of stock at 0, Low stock below 3
+  // type "roll":  Out of stock at 0, Low stock below 100
+  // type "none":  count only, no status
+  const ITEMS = [
+    { id: "p10",         group: "devices",  name: "P10 Device",          unit: "devices", type: "count", step: 1,  start: 12,  max: 30,   rule: "Low stock below 3" },
+    { id: "p5se",        group: "devices",  name: "P5SE Device",         unit: "devices", type: "count", step: 1,  start: 8,   max: 30,   rule: "Low stock below 3" },
+    { id: "pouch-p10",   group: "pouches",  name: "P10 Pouch",           unit: "pieces",  type: "count", step: 1,  start: 15,  max: 40,   rule: "Low stock below 3" },
+    { id: "pouch-p5se",  group: "pouches",  name: "P5SE Pouch",          unit: "pieces",  type: "count", step: 1,  start: 10,  max: 40,   rule: "Low stock below 3" },
+    { id: "charger-p10", group: "chargers", name: "P10 Charger",         unit: "pieces",  type: "count", step: 1,  start: 18,  max: 40,   rule: "Low stock below 3" },
+    { id: "charger-p5se",group: "chargers", name: "P5SE Charger",        unit: "pieces",  type: "count", step: 1,  start: 12,  max: 40,   rule: "Low stock below 3" },
+    { id: "plain",       group: "rolls",    name: "Plain Rolls",         unit: "rolls",   type: "roll",  step: 10, start: 450, max: 1000, rule: "Low stock below 100" },
+    { id: "transit", group: "cards", name: "Transit Cards", unit: "cards", type: "none", step: 10, start: 500, max: 1000, rule: "" },
+    { id: "rep-p10",      group: "replacement", name: "Faulty P10 Devices", unit: "faulty devices", type: "replace", step: 1, start: 1, max: 10, rule: "Replace soon at 3 or more" },
+    { id: "rep-p5se",     group: "replacement", name: "Faulty P5SE Devices", unit: "faulty devices", type: "replace", step: 1, start: 0, max: 10, rule: "Replace soon at 3 or more" },
+    { id: "ad",          group: "rolls",    name: "Advertisement Rolls", unit: "rolls",   type: "none",  step: 10, start: 300, max: 1000, rule: "" }
+  ];
+
+  const KEY = "inventory-management-v6";
+  let stock = {};
+
+  function load() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY));
+      if (saved && typeof saved === "object") stock = saved;
+    } catch (e) {}
+    ITEMS.forEach(i => { if (typeof stock[i.id] !== "number") stock[i.id] = i.start; });
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(stock)); } catch (e) {} }
+
+  function status(item) {
+    const n = stock[item.id];
+    if (item.type === "none") return null;
+    if (item.type === "replace") {
+      if (n >= 3) return { text: "Replace soon", cls: "out", warn: true };
+      if (n > 0)  return { text: "Pending",      cls: "out",  warn: false };
+      return { text: "None pending", cls: "ok", warn: false };
+    }
+    const low = item.type === "roll" ? 100 : 3;
+    if (n <= 0)  return { text: "Out of stock", cls: "out",  warn: true };
+    if (n < low) return { text: "Low stock",    cls: "warn", warn: true };
+    return { text: "In stock", cls: "ok", warn: false };
+  }
+
+  function render() {
+    ["devices", "pouches", "chargers", "rolls", "cards", "replacement"].forEach(g => document.getElementById(g).innerHTML = "");
+    const alerts = [];
+
+    ITEMS.forEach(item => {
+      const n = stock[item.id];
+      const st = status(item);
+      if (st && st.warn) alerts.push(item.type === "replace" ? item.name + " (replace soon)" : item.name + (n <= 0 ? " (out of stock)" : " (low stock)"));
+
+      const card = document.createElement("div");
+      card.className = "card" + (item.type === "replace" ? " faulty" : "") + (st && st.warn ? " alerting" : "");
+      const pct = Math.min(100, Math.round(n / item.max * 100));
+      card.innerHTML = `
+        <div class="top">
+          <div>
+            <div class="name">${item.name}</div>
+            ${item.rule ? `<div class="rule">${item.rule}</div>` : ""}
+          </div>
+          ${st ? `<span class="pill ${st.cls}">${st.text}</span>` : ""}
+        </div>
+        <div class="count"><b>${n}</b><span>${item.type === "replace" ? item.unit + " waiting" : item.unit + " in stock"}</span></div>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="controls">
+          <button type="button" aria-label="Remove ${item.step} from ${item.name}" data-id="${item.id}" data-d="-${item.step}">−${item.step}</button>
+          <input type="number" min="0" inputmode="numeric" value="${n}" aria-label="${item.name} stock" data-id="${item.id}">
+          <button type="button" aria-label="Add ${item.step} to ${item.name}" data-id="${item.id}" data-d="${item.step}">+${item.step}</button>
+        </div>`;
+      document.getElementById(item.group).appendChild(card);
+    });
+
+    const box = document.getElementById("alert");
+    if (alerts.length) {
+      box.classList.remove("hidden");
+      box.innerHTML = `<strong>${alerts.length === 1 ? "1 item needs attention" : alerts.length + " items need attention"}</strong><span>${alerts.join(", ")}</span>`;
+    } else {
+      box.classList.add("hidden");
+    }
+  }
+
+  document.addEventListener("click", e => {
+    const b = e.target.closest("button[data-d]");
+    if (!b) return;
+    const id = b.dataset.id;
+    stock[id] = Math.max(0, stock[id] + parseInt(b.dataset.d, 10));
+    save(); render();
+  });
+
+  document.addEventListener("change", e => {
+    if (e.target.matches("input[data-id]")) {
+      const v = parseInt(e.target.value, 10);
+      stock[e.target.dataset.id] = isNaN(v) ? 0 : Math.max(0, v);
+      save(); render();
+    }
+  });
+
+  document.getElementById("reset").addEventListener("click", () => {
+    stock = {}; ITEMS.forEach(i => stock[i.id] = i.start);
+    save(); render();
+  });
+
+  load(); render();
+</script>
+</body>
+</html>
